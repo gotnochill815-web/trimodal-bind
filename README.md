@@ -151,7 +151,7 @@ streamlit run src/streamlit_app.py
 
 ---
 
-# 🛠 Technologies
+#  Technologies
 
 - Python
 - PyTorch
