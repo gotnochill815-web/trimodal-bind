@@ -9,7 +9,7 @@ Trimodal-Bind is a deep learning project that learns a **shared embedding space*
 The model is trained using **contrastive learning (InfoNCE Loss)** so that semantically similar image, audio, and text samples are mapped close together in the embedding space.
 
 Once trained, the system can retrieve the most relevant image given an audio clip, making it a simple multimodal retrieval engine.
-
+demo : https://trimodal-bind-txe2npvpwtcmxtjovtrecn.streamlit.app/
 ---
 
 #  Features
