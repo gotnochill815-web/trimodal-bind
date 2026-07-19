@@ -14,7 +14,12 @@ from src.models import ImageEncoder, TextEncoder
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-CHECKPOINT = "trimodal_bind.pt"
+from huggingface_hub import hf_hub_download
+
+CHECKPOINT = hf_hub_download(
+    repo_id="prakhya15/trimodal-bind-model",
+    filename="trimodal_bind.pt"
+)
 IMAGE_DIR = "generated_images"
 META_PATH = "ESC-50-master/meta/esc50.csv"
 
