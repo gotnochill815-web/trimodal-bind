@@ -1,6 +1,9 @@
+
 import os
-import torch
+from pathlib import Path
+
 import gradio as gr
+import torch
 from PIL import Image
 from torchvision import transforms
 from transformers import AutoTokenizer
@@ -14,47 +17,43 @@ from src.models import ImageEncoder, TextEncoder
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+IMAGE_DIR = BASE_DIR / "generated_images"
+
 CHECKPOINT = hf_hub_download(
     repo_id="prakhya15/trimodal-bind-model",
     filename="trimodal_bind.pt"
 )
 
-IMAGE_DIR = "generated_images"
-
 class_names = [
-    "dog", "rooster", "pig", "cow", "frog",
-    "cat", "hen", "insects", "sheep", "crow",
-    "rain", "sea_waves", "crackling_fire", "crickets", "chirping_birds",
-    "water_drops", "wind", "pouring_water", "toilet_flush", "thunderstorm",
-    "crying_baby", "sneezing", "clapping", "breathing", "coughing",
-    "footsteps", "laughing", "brushing_teeth", "snoring", "drinking_sipping",
-    "door_wood_knock", "mouse_click", "keyboard_typing", "door_wood_creaks", "can_opening",
-    "washing_machine", "vacuum_cleaner", "clock_alarm", "clock_tick", "glass_breaking",
-    "helicopter", "chainsaw", "siren", "car_horn", "engine",
-    "train", "church_bells", "airplane", "fireworks", "hand_saw"
+    "dog","rooster","pig","cow","frog",
+    "cat","hen","insects","sheep","crow",
+    "rain","sea_waves","crackling_fire","crickets","chirping_birds",
+    "water_drops","wind","pouring_water","toilet_flush","thunderstorm",
+    "crying_baby","sneezing","clapping","breathing","coughing",
+    "footsteps","laughing","brushing_teeth","snoring","drinking_sipping",
+    "door_wood_knock","mouse_click","keyboard_typing","door_wood_creaks","can_opening",
+    "washing_machine","vacuum_cleaner","clock_alarm","clock_tick","glass_breaking",
+    "helicopter","chainsaw","siren","car_horn","engine",
+    "train","church_bells","airplane","fireworks","hand_saw"
 ]
 
 TOP_K = 5
 
 # -------------------------------------------------
-# Build metadata
+# Metadata
 # -------------------------------------------------
 
 mini = []
-
 for cls in class_names:
-    image_path = os.path.join(IMAGE_DIR, f"{cls}.png")
-
-    if os.path.exists(image_path):
-        mini.append({
-            "category": cls,
-            "text": cls.replace("_", " ")
-        })
+    p = IMAGE_DIR / f"{cls}.png"
+    if p.exists():
+        mini.append({"category": cls, "text": cls.replace("_", " ")})
 
 print(f"Found {len(mini)} images.")
 
 # -------------------------------------------------
-# Image Transform
+# Transform
 # -------------------------------------------------
 
 transform = transforms.Compose([
@@ -63,7 +62,7 @@ transform = transforms.Compose([
 ])
 
 # -------------------------------------------------
-# Load Models
+# Models
 # -------------------------------------------------
 
 img_encoder = ImageEncoder().to(DEVICE)
@@ -77,12 +76,10 @@ txt_encoder.load_state_dict(checkpoint["text_encoder"])
 img_encoder.eval()
 txt_encoder.eval()
 
-tokenizer = AutoTokenizer.from_pretrained(
-    "distilbert-base-uncased"
-)
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
 # -------------------------------------------------
-# Build Gallery
+# Gallery
 # -------------------------------------------------
 
 gallery = []
@@ -90,18 +87,14 @@ gallery = []
 print("Building gallery...")
 
 with torch.no_grad():
-
     for row in mini:
+        image_path = IMAGE_DIR / f'{row["category"]}.png'
 
-        category = row["category"]
-        label = row["text"]
-
-        image_path = os.path.join(
-            IMAGE_DIR,
-            f"{category}.png"
-        )
-
-        image = Image.open(image_path).convert("RGB")
+        try:
+            image = Image.open(image_path).convert("RGB")
+        except Exception as e:
+            print(f"Skipping {image_path}: {e}")
+            continue
 
         tensor = transform(image).unsqueeze(0).to(DEVICE)
 
@@ -109,8 +102,8 @@ with torch.no_grad():
         emb = emb / emb.norm()
 
         gallery.append({
-            "label": label,
-            "path": image_path,
+            "label": row["text"],
+            "path": str(image_path),
             "embedding": emb
         })
 
@@ -121,17 +114,16 @@ print(f"Gallery built with {len(gallery)} images.")
 # -------------------------------------------------
 
 def retrieve(query):
-
     tokens = tokenizer(
         [query],
         return_tensors="pt",
         padding=True,
-        truncation=True
+        truncation=True,
     )
 
     tokens = {
         "input_ids": tokens["input_ids"].to(DEVICE),
-        "attention_mask": tokens["attention_mask"].to(DEVICE)
+        "attention_mask": tokens["attention_mask"].to(DEVICE),
     }
 
     with torch.no_grad():
@@ -140,46 +132,27 @@ def retrieve(query):
     q = q / q.norm()
 
     scores = []
-
     for item in gallery:
-
-        score = torch.dot(
-            q,
-            item["embedding"]
-        ).item()
-
+        score = torch.dot(q, item["embedding"]).item()
         scores.append({
             "score": score,
             "label": item["label"],
-            "path": item["path"]
+            "path": item["path"],
         })
 
-    scores.sort(
-        key=lambda x: x["score"],
-        reverse=True
-    )
+    scores.sort(key=lambda x: x["score"], reverse=True)
 
     gallery_output = []
-    result_text = ""
+    ranking = ""
 
-    for rank, item in enumerate(scores[:TOP_K], start=1):
+    for i, item in enumerate(scores[:TOP_K], start=1):
+        gallery_output.append((item["path"], f"{i}. {item['label']}"))
+        ranking += f"{i}. {item['label']} (Similarity={item['score']:.3f})\n"
 
-        gallery_output.append(
-            (
-                item["path"],
-                f"{rank}. {item['label']}"
-            )
-        )
-
-        result_text += (
-            f"{rank}. {item['label']} "
-            f"(Similarity = {item['score']:.3f})\n"
-        )
-
-    return gallery_output, result_text
+    return gallery_output, ranking
 
 # -------------------------------------------------
-# Gradio UI
+# UI
 # -------------------------------------------------
 
 demo = gr.Interface(
@@ -189,25 +162,15 @@ demo = gr.Interface(
         placeholder="e.g. dog barking"
     ),
     outputs=[
-        gr.Gallery(
-            label="Top Retrieved Images",
-            columns=5,
-            height=300
-        ),
+        gr.Gallery(label="Top Retrieved Images", columns=5, height=300),
         gr.Textbox(label="Ranking")
     ],
     title="TriModal-Bind",
-    description="""
-Retrieve the most semantically similar images from natural language
-using a shared multimodal embedding space learned through
-contrastive learning.
-"""
+    description="Text-to-image retrieval using a shared multimodal embedding space.",
 )
-
-# -------------------------------------------------
 
 if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
-        server_port=int(os.environ.get("PORT", 7860))
+        server_port=int(os.environ.get("PORT", 10000)),
     )
