@@ -206,7 +206,7 @@ pip install -r requirements.txt
 AI/ML Researcher
 
 - GitHub: https://github.com/gotnochill815-web
-- LinkedIn: *(Add your LinkedIn profile here)*
+
 
 ---
 
