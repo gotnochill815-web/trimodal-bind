@@ -9,8 +9,7 @@ from torchvision import transforms
 from transformers import AutoTokenizer
 from huggingface_hub import hf_hub_download
 
-from src.models import ImageEncoder, TextEncoder
-
+from models import ImageEncoder, TextEncoder
 # -------------------------------------------------
 # Configuration
 # -------------------------------------------------
