@@ -1,44 +1,45 @@
-#  Trimodal-Bind
-### Learning a Shared Embedding Space for Image, Audio and Text Retrieval
+#  TriModal-Bind
 
-Trimodal-Bind is a deep learning project that learns a **shared embedding space** for three different modalities:
--  Images
--  Audio
--  Text
+### Learning a Shared Embedding Space for Image, Audio and Text
 
-The model is trained using **contrastive learning (InfoNCE Loss)** so that semantically similar image, audio, and text samples are mapped close together in the embedding space.
+TriModal-Bind is a multimodal representation learning project that explores learning a **shared embedding space** across images, text, and environmental sounds using contrastive learning.
 
-Once trained, the system can retrieve the most relevant image given an audio clip, making it a simple multimodal retrieval engine.
-demo : https://trimodal-bind-txe2npvpwtcmxtjovtrecn.streamlit.app/
+The current implementation demonstrates **text-to-image retrieval**, where natural language queries are mapped into the same embedding space as images to retrieve semantically similar visual concepts.
+
+ **Live Demo**
+
+https://trimodal-bind-txe2npvpwtcmxtjovtrecn.streamlit.app/
+
 ---
 
 #  Features
 
-- Joint Image, Audio and Text embeddings
-- Contrastive (InfoNCE) training
-- ESC-50 dataset support
-- Stable Diffusion generated image gallery
-- Gradio Web Interface
-- Modular PyTorch implementation
-- Cosine Similarity Retrieval
-- Top-K Image Retrieval
+- Text → Image retrieval
+- Contrastive learning using InfoNCE Loss
+- Shared multimodal embedding space
+- ResNet18 image encoder
+- DistilBERT text encoder
+- ESC-50 environmental sound classes
+- Stable Diffusion generated representative images
+- Cosine similarity search
+- Streamlit web interface
+- PyTorch implementation
 
 ---
 
 #  Project Structure
 
-```
+```text
 trimodal-bind/
 │
 ├── src/
-│   ├── app.py
-│   ├── dataset.py
+│   ├── streamlit_app.py
 │   ├── models.py
+│   ├── dataset.py
 │   ├── train.py
 │   └── utils.py
 │
 ├── generated_images/
-│
 ├── notebooks/
 │   └── trimodal_bind_v1.ipynb
 │
@@ -49,108 +50,80 @@ trimodal-bind/
 
 ---
 
-#  Model Architecture
-
-The system consists of three independent encoders.
+# Model Architecture
 
 ```
-                 Image
+              Text Query
                    │
-           ResNet18 Encoder
-                   │
-                   ▼
-              Image Embedding
-                   │
+          DistilBERT Encoder
                    │
                    ▼
-             Shared Embedding Space
-                   ▲
-                   │
-                   │
-          Audio Embedding
-                   ▲
-            CLAP Encoder
-                   ▲
-                 Audio
-
-
-                 Text
-                   │
-             CLIP Text Encoder
+          Text Embedding (256D)
                    │
                    ▼
-              Text Embedding
+         Shared Embedding Space
+                   ▲
+                   │
+         Image Embedding (256D)
+                   ▲
+             ResNet18 Encoder
+                   ▲
+                 Images
 ```
 
-All embeddings are projected into the same latent space and trained using **InfoNCE Loss**.
+The encoders are trained using **contrastive learning (InfoNCE Loss)** so that semantically related samples are positioned close together in the embedding space.
 
 ---
 
 #  Dataset
 
-**ESC-50**
+The project uses the **ESC-50** environmental sound dataset.
 
-- 50 environmental sound classes
-- 2,000 labeled audio clips
-- 5-second audio recordings
+- 50 sound categories
+- 2,000 labelled audio clips
+- 5-second environmental recordings
 
-Examples include:
+Representative images for each category were generated using Stable Diffusion and are used for image retrieval.
+
+Example classes include:
 
 - Dog
-- Cat
 - Rain
 - Helicopter
-- Clock Alarm
 - Chainsaw
-- Rooster
 - Fireworks
 - Crying Baby
+- Clock Alarm
 - Wind
-
-Each class is represented by an AI-generated image using Stable Diffusion.
 
 ---
 
 #  Training
 
-The model is trained using:
+Training uses:
 
 - PyTorch
 - Contrastive Learning
 - InfoNCE Loss
 - Adam Optimizer
 
-During training, positive image-audio-text triplets are pulled closer while unrelated samples are pushed apart.
+The objective encourages semantically related samples to have nearby embeddings while separating unrelated samples.
 
 ---
 
 #  Retrieval Pipeline
 
-Given an input audio:
+Given a text query:
 
-1. Encode audio using CLAP
-2. Compute embedding
+1. Encode text using DistilBERT
+2. Project into the shared embedding space
 3. Compare against image embeddings
 4. Compute cosine similarity
-5. Retrieve Top-K most similar images
+5. Retrieve the Top-5 most similar images
 
 ---
 
-#  Demo
-
-The project includes a Gradio interface.
-
-Run:
-
-```bash
-python src/app.py
-```
-
-Upload an audio clip and retrieve the most relevant images.
-
----
-
-#  Installation
+#  Running Locally
 
 Clone the repository
 
@@ -158,7 +131,7 @@ Clone the repository
 git clone https://github.com/gotnochill815-web/trimodal-bind.git
 ```
 
-Move into the project
+Enter the project
 
 ```bash
 cd trimodal-bind
@@ -170,32 +143,42 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
+Launch the application
+
+```bash
+streamlit run src/streamlit_app.py
+```
+
 ---
 
 # 🛠 Technologies
 
+- Python
 - PyTorch
-- Transformers
-- OpenCLIP
-- LAION CLAP
-- Stable Diffusion
-- Gradio
 - TorchVision
+- Transformers
+- Hugging Face Hub
+- Streamlit
+- PIL
 - NumPy
 
 ---
 
-#  Future Improvements
+#  Future Work
 
-- Train on larger multimodal datasets
-- Support text-to-image retrieval
-- Cross-modal image captioning
-- FAISS indexing for large-scale retrieval
+The long-term goal is to support complete multimodal retrieval.
+
+Planned additions include:
+
+- Audio → Image retrieval
+- Text → Audio retrieval
+- Image → Audio retrieval
+- CLAP-based audio encoder
+- FAISS indexing
 - Hard negative mining
 - Recall@K and mAP evaluation
-- Replace ResNet18 with CLIP Vision Encoder
-- Multi-image generation per class
-- End-to-end training of all encoders
+- CLIP Vision encoder
+- Larger multimodal datasets
 
 ---
 
@@ -205,11 +188,11 @@ pip install -r requirements.txt
 
 AI/ML Researcher
 
-- GitHub: https://github.com/gotnochill815-web
-
+GitHub:
+https://github.com/gotnochill815-web
 
 ---
 
-#  If you found this project useful
+#  Support
 
-Please consider giving it a star on GitHub.
+If you found this project useful, consider giving the repository a star on GitHub.
